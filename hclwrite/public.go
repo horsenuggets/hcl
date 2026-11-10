@@ -45,8 +45,17 @@ func ParseExpression(src []byte, filename string, start hcl.Pos) (*Expression, h
 // to partial source code, although the result in that case may not be
 // desirable.
 func Format(src []byte) []byte {
+	return FormatWithIndent(src, 2)
+}
+
+// FormatWithIndent formats source code like Format, using indentWidth spaces per level.
+// It panics if indentWidth is not positive. Like Format, it does not validate syntax.
+func FormatWithIndent(src []byte, indentWidth int) []byte {
+	if indentWidth <= 0 {
+		panic("Indentation width must be positive.")
+	}
 	tokens := lexConfig(src)
-	format(tokens)
+	formatWithIndent(tokens, indentWidth)
 	buf := &bytes.Buffer{}
 	//nolint:errcheck // FIXME: Propogate errors upward.
 	tokens.WriteTo(buf)
