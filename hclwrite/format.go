@@ -10,6 +10,10 @@ import (
 // format rewrites tokens within the given sequence, in-place, to adjust the
 // whitespace around their content to achieve canonical formatting.
 func format(tokens Tokens) {
+	formatWithIndent(tokens, 2)
+}
+
+func formatWithIndent(tokens Tokens, indentWidth int) {
 	// Formatting is a multi-pass process. More details on the passes below,
 	// but this is the overview:
 	// - adjust the leading space on each line to create appropriate
@@ -25,12 +29,12 @@ func format(tokens Tokens) {
 	// other token attributes unchanged.
 
 	lines := linesForFormat(tokens)
-	formatIndent(lines)
+	formatIndent(lines, indentWidth)
 	formatSpaces(lines)
 	formatCells(lines)
 }
 
-func formatIndent(lines []formatLine) {
+func formatIndent(lines []formatLine, indentWidth int) {
 	// Our methodology for indents is to take the input one line at a time
 	// and count the bracketing delimiters on each line. If a line has a net
 	// increase in open brackets, we increase the indent level by one and
@@ -73,7 +77,7 @@ func formatIndent(lines []formatLine) {
 
 		switch {
 		case netBrackets > 0:
-			line.lead[0].SpacesBefore = 2 * len(indents)
+			line.lead[0].SpacesBefore = indentWidth * len(indents)
 			indents = append(indents, netBrackets)
 		case netBrackets < 0:
 			closed := -netBrackets
@@ -93,9 +97,9 @@ func formatIndent(lines []formatLine) {
 					closed = 0
 				}
 			}
-			line.lead[0].SpacesBefore = 2 * len(indents)
+			line.lead[0].SpacesBefore = indentWidth * len(indents)
 		default:
-			line.lead[0].SpacesBefore = 2 * len(indents)
+			line.lead[0].SpacesBefore = indentWidth * len(indents)
 		}
 	}
 }
