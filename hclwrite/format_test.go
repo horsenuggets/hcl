@@ -722,6 +722,59 @@ func TestFormatTrailingListCommas(t *testing.T) {
 	}
 }
 
+func TestFormatTrailingListCommasSharedToken(t *testing.T) {
+	t.Run("within one tuple", func(t *testing.T) {
+		comma := &Token{Type: hclsyntax.TokenComma, Bytes: []byte(",")}
+		tokens := Tokens{
+			{Type: hclsyntax.TokenIdent, Bytes: []byte("a")},
+			{Type: hclsyntax.TokenEqual, Bytes: []byte("=")},
+			{Type: hclsyntax.TokenOBrack, Bytes: []byte("[")},
+			{Type: hclsyntax.TokenNumberLit, Bytes: []byte("1")},
+			comma,
+			{Type: hclsyntax.TokenNumberLit, Bytes: []byte("2")},
+			comma,
+			{Type: hclsyntax.TokenCBrack, Bytes: []byte("]")},
+			{Type: hclsyntax.TokenEOF},
+		}
+		format(tokens)
+		if got, want := string(tokens.Bytes()), "a = [1, 2]"; got != want {
+			t.Fatalf("Unexpected output %q, want %q.", got, want)
+		}
+		if string(comma.Bytes) != "," {
+			t.Fatal("Shared comma was mutated.")
+		}
+	})
+
+	t.Run("across raw expressions", func(t *testing.T) {
+		comma := &Token{Type: hclsyntax.TokenComma, Bytes: []byte(",")}
+		tokens := Tokens{
+			{Type: hclsyntax.TokenIdent, Bytes: []byte("a")},
+			{Type: hclsyntax.TokenEqual, Bytes: []byte("=")},
+			{Type: hclsyntax.TokenOBrack, Bytes: []byte("[")},
+			{Type: hclsyntax.TokenNumberLit, Bytes: []byte("1")},
+			comma,
+			{Type: hclsyntax.TokenCBrack, Bytes: []byte("]")},
+			{Type: hclsyntax.TokenNewline, Bytes: []byte("\n")},
+			{Type: hclsyntax.TokenIdent, Bytes: []byte("b")},
+			{Type: hclsyntax.TokenEqual, Bytes: []byte("=")},
+			{Type: hclsyntax.TokenOBrack, Bytes: []byte("[")},
+			{Type: hclsyntax.TokenNumberLit, Bytes: []byte("2")},
+			comma,
+			{Type: hclsyntax.TokenNumberLit, Bytes: []byte("3")},
+			{Type: hclsyntax.TokenCBrack, Bytes: []byte("]")},
+			{Type: hclsyntax.TokenNewline, Bytes: []byte("\n")},
+			{Type: hclsyntax.TokenEOF},
+		}
+		format(tokens)
+		if got, want := string(tokens.Bytes()), "a = [1]\nb = [2, 3]\n"; got != want {
+			t.Fatalf("Unexpected output %q, want %q.", got, want)
+		}
+		if string(comma.Bytes) != "," {
+			t.Fatal("Shared comma was mutated.")
+		}
+	})
+}
+
 func TestLinesForFormat(t *testing.T) {
 	tests := []struct {
 		tokens Tokens

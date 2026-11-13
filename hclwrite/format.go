@@ -24,8 +24,8 @@ func formatWithIndent(tokens Tokens, indentWidth int) {
 	// All of these steps operate in-place on the given tokens, so a caller
 	// may collect a flat sequence of all of the tokens underlying an AST
 	// and pass it here and we will then indirectly modify the AST itself.
-	// Aside from clearing the bytes of trailing list commas, formatting changes
-	// only the SpacesBefore attribute on each token.
+	// Formatting replaces trailing list commas in the token slice and otherwise
+	// changes only the SpacesBefore attribute on shared tokens.
 
 	formatTrailingCommas(tokens)
 	// Exclude removed commas from layout while retaining their shared token pointers.
@@ -51,8 +51,10 @@ func formatTrailingCommas(tokens Tokens) {
 				continue
 			}
 			if tokens[j].Type == hclsyntax.TokenComma {
-				tokens[j].Bytes = nil
-				tokens[j].SpacesBefore = 0
+				removed := *tokens[j]
+				removed.Bytes = nil
+				removed.SpacesBefore = 0
+				tokens[j] = &removed
 			}
 			break
 		}
