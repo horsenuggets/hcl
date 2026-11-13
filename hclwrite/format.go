@@ -19,8 +19,7 @@ func formatWithIndent(tokens Tokens, indentWidth int) {
 	// - adjust the leading space on each line to create appropriate
 	//   indentation
 	// - adjust spaces between tokens in a single cell using a set of rules
-	// - adjust the leading space in the "assign" and "comment" cells on each
-	//   line to vertically align with neighboring lines.
+	// - use one space before the "assign" and "comment" cells on each line.
 	// All of these steps operate in-place on the given tokens, so a caller
 	// may collect a flat sequence of all of the tokens underlying an AST
 	// and pass it here and we will then indirectly modify the AST itself.
@@ -31,7 +30,6 @@ func formatWithIndent(tokens Tokens, indentWidth int) {
 	lines := linesForFormat(tokens)
 	formatIndent(lines, indentWidth)
 	formatSpaces(lines)
-	formatCells(lines)
 }
 
 func formatIndent(lines []formatLine, indentWidth int) {
@@ -156,71 +154,10 @@ func formatSpaces(lines []formatLine) {
 				after.SpacesBefore = 0
 			}
 		}
-
-	}
-}
-
-func formatCells(lines []formatLine) {
-	chainStart := -1
-	maxColumns := 0
-
-	// We'll deal with the "assign" cell first, since moving that will
-	// also impact the "comment" cell.
-	closeAssignChain := func(i int) {
-		for _, chainLine := range lines[chainStart:i] {
-			columns := chainLine.lead.Columns()
-			spaces := (maxColumns - columns) + 1
-			chainLine.assign[0].SpacesBefore = spaces
+		if len(line.comment) > 0 {
+			line.comment[0].SpacesBefore = 1
 		}
-		chainStart = -1
-		maxColumns = 0
-	}
-	for i, line := range lines {
-		if line.assign == nil {
-			if chainStart != -1 {
-				closeAssignChain(i)
-			}
-		} else {
-			if chainStart == -1 {
-				chainStart = i
-			}
-			columns := line.lead.Columns()
-			if columns > maxColumns {
-				maxColumns = columns
-			}
-		}
-	}
-	if chainStart != -1 {
-		closeAssignChain(len(lines))
-	}
 
-	// Now we'll deal with the comments
-	closeCommentChain := func(i int) {
-		for _, chainLine := range lines[chainStart:i] {
-			columns := chainLine.lead.Columns() + chainLine.assign.Columns()
-			spaces := (maxColumns - columns) + 1
-			chainLine.comment[0].SpacesBefore = spaces
-		}
-		chainStart = -1
-		maxColumns = 0
-	}
-	for i, line := range lines {
-		if line.comment == nil {
-			if chainStart != -1 {
-				closeCommentChain(i)
-			}
-		} else {
-			if chainStart == -1 {
-				chainStart = i
-			}
-			columns := line.lead.Columns() + line.assign.Columns()
-			if columns > maxColumns {
-				maxColumns = columns
-			}
-		}
-	}
-	if chainStart != -1 {
-		closeCommentChain(len(lines))
 	}
 }
 
@@ -466,9 +403,8 @@ func tokenBracketChange(tok *Token) int {
 //   - comment: if line contains any non-comment tokens and ends with a
 //     single-line comment token, represents the comment.
 //
-// When formatting, the leading spaces of the first tokens in each of these
-// cells is adjusted to align vertically their occurences on consecutive
-// rows.
+// When formatting, the first tokens in the "assign" and "comment" cells are
+// preceded by one space.
 type formatLine struct {
 	lead    Tokens
 	assign  Tokens

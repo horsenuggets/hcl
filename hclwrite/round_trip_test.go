@@ -23,14 +23,14 @@ func TestRoundTripVerbatim(t *testing.T) {
 `,
 		`
 foobar = 1
-baz    = 1
+baz = 1
 `,
 		`
 # this file is awesome
 
 # tossed salads and scrambled eggs
 foobar = 1
-baz    = 1
+baz = 1
 
 block {
   a = "a"

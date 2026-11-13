@@ -229,7 +229,7 @@ a = 1
 bungle = 2
 `,
 			`
-a      = 1
+a = 1
 bungle = 2
 `,
 		},
@@ -251,7 +251,7 @@ a = 1 # foo
 bungle = 2
 `,
 			`
-a      = 1 # foo
+a = 1 # foo
 bungle = 2
 `,
 		},
@@ -261,7 +261,7 @@ a = 1 # foo
 bungle = "bonce" # baz
 `,
 			`
-a      = 1       # foo
+a = 1 # foo
 bungle = "bonce" # baz
 `,
 		},
@@ -273,7 +273,7 @@ bungle = "bonce" # baz
 `,
 			`
 # here we go
-a      = 1       # foo
+a = 1 # foo
 bungle = "bonce" # baz
 `,
 		},
@@ -284,8 +284,8 @@ a = 1 # foo
 bungle = "bonce" # baz
 `,
 			`
-foo {}           # here we go
-a      = 1       # foo
+foo {} # here we go
+a = 1 # foo
 bungle = "bonce" # baz
 `,
 		},
@@ -296,9 +296,9 @@ bungle = "bonce" # baz
 zebra = "striped" # baz
 `,
 			`
-a      = 1         # foo
-bungle = "bonce"   # baz
-zebra  = "striped" # baz
+a = 1 # foo
+bungle = "bonce" # baz
+zebra = "striped" # baz
 `,
 		},
 		{
@@ -313,7 +313,7 @@ zebra = "striped" # baz
 a = 1 # foo
 bungle = (
   "bonce"
-)                 # baz
+) # baz
 zebra = "striped" # baz
 `,
 		},
@@ -327,9 +327,9 @@ zebra="striped"# baz
 `,
 			`
 a = "apple" # foo
-bungle = (  # woo parens
+bungle = ( # woo parens
   "bonce"
-)                 # baz
+) # baz
 zebra = "striped" # baz
 `,
 		},
@@ -340,9 +340,9 @@ bungle = "🇬🇧" # baz
 zebra = "striped" # baz
 `,
 			`
-𝒜      = 1         # foo
-bungle = "🇬🇧"       # baz
-zebra  = "striped" # baz
+𝒜 = 1 # foo
+bungle = "🇬🇧" # baz
+zebra = "striped" # baz
 `,
 		},
 		{
@@ -611,7 +611,7 @@ EOF
 }
 
 module "x" {
-  a     = "b"
+  a = "b"
   abcde = "456"
 }`,
 		},
@@ -648,6 +648,32 @@ module "x" {
 		})
 	}
 
+}
+
+func TestFormatCompactCells(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{
+			"foo    = bar\nbar    = foo\nfoobar = barfoo\n",
+			"foo = bar\nbar = foo\nfoobar = barfoo\n",
+		},
+		{
+			"foo = bar    # first\nfoobar = barfoo # second\n",
+			"foo = bar # first\nfoobar = barfoo # second\n",
+		},
+	}
+
+	for _, test := range tests {
+		got := Format([]byte(test.input))
+		if string(got) != test.want {
+			t.Errorf("wrong result\ninput:\n%s\ngot:\n%s\nwant:\n%s", test.input, got, test.want)
+		}
+		if second := Format(got); string(second) != test.want {
+			t.Errorf("formatting is not idempotent\ngot:\n%s\nwant:\n%s", second, test.want)
+		}
+	}
 }
 
 func TestLinesForFormat(t *testing.T) {

@@ -67,9 +67,9 @@ func Example_generateFromScratch() {
 	//
 	// bar "a" "b" {
 	//   baz {
-	//     foo  = 10
+	//     foo = 10
 	//     beep = "boop"
-	//     baz  = []
+	//     baz = []
 	//   }
 	// }
 }
