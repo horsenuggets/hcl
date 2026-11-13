@@ -690,6 +690,14 @@ func TestFormatTrailingListCommas(t *testing.T) {
 			"a = [\n  \"a\",\n  \"b\",\n  \"c\" // this comma here i dont want it\n]\n",
 		},
 		{
+			"a = [1, /* c */]\n",
+			"a = [1 /* c */]\n",
+		},
+		{
+			"a = [\n1\n,\n# c\n]\n",
+			"a = [\n  1\n\n  # c\n]\n",
+		},
+		{
 			"a = [[\"a\",], [\"b\",],]\n",
 			"a = [[\"a\"], [\"b\"]]\n",
 		},

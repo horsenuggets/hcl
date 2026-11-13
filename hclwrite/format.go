@@ -28,7 +28,15 @@ func formatWithIndent(tokens Tokens, indentWidth int) {
 	// only the SpacesBefore attribute on each token.
 
 	formatTrailingCommas(tokens)
-	lines := linesForFormat(tokens)
+	// Exclude removed commas from layout while retaining their shared token pointers.
+	layoutTokens := make(Tokens, 0, len(tokens))
+	for _, token := range tokens {
+		if token.Type == hclsyntax.TokenComma && len(token.Bytes) == 0 {
+			continue
+		}
+		layoutTokens = append(layoutTokens, token)
+	}
+	lines := linesForFormat(layoutTokens)
 	formatIndent(lines, indentWidth)
 	formatSpaces(lines)
 }
@@ -201,10 +209,6 @@ func spaceAfterToken(subject, before, after *Token) bool {
 
 	case subject.Type == hclsyntax.TokenDot || after.Type == hclsyntax.TokenDot:
 		// Don't use spaces around attribute access dots
-		return false
-
-	case subject.Type == hclsyntax.TokenComma && len(subject.Bytes) == 0:
-		// Removed trailing commas don't separate adjacent tokens.
 		return false
 
 	case after.Type == hclsyntax.TokenComma || after.Type == hclsyntax.TokenEllipsis:
