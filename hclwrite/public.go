@@ -36,8 +36,8 @@ func ParseExpression(src []byte, filename string, start hcl.Pos) (*Expression, h
 	return parseExpr(src, filename, start)
 }
 
-// Format takes source code and performs simple whitespace changes to transform
-// it to a canonical layout style.
+// Format takes source code and performs simple formatting changes to transform
+// it to a canonical layout style, including removing trailing list commas.
 //
 // Format skips constructing an AST and works directly with tokens, so it
 // is less expensive than formatting via the AST for situations where no other

@@ -8,7 +8,7 @@ import (
 )
 
 // format rewrites tokens within the given sequence, in-place, to adjust the
-// whitespace around their content to achieve canonical formatting.
+// whitespace around their content and remove trailing list commas.
 func format(tokens Tokens) {
 	formatWithIndent(tokens, 2)
 }
@@ -16,6 +16,7 @@ func format(tokens Tokens) {
 func formatWithIndent(tokens Tokens, indentWidth int) {
 	// Formatting is a multi-pass process. More details on the passes below,
 	// but this is the overview:
+	// - remove trailing commas from list constructors
 	// - adjust the leading space on each line to create appropriate
 	//   indentation
 	// - adjust spaces between tokens in a single cell using a set of rules
@@ -23,13 +24,31 @@ func formatWithIndent(tokens Tokens, indentWidth int) {
 	// All of these steps operate in-place on the given tokens, so a caller
 	// may collect a flat sequence of all of the tokens underlying an AST
 	// and pass it here and we will then indirectly modify the AST itself.
-	// Formatting must change only whitespace. Specifically, that means
-	// changing the SpacesBefore attribute on a token while leaving the
-	// other token attributes unchanged.
+	// Aside from clearing the bytes of trailing list commas, formatting changes
+	// only the SpacesBefore attribute on each token.
 
+	formatTrailingCommas(tokens)
 	lines := linesForFormat(tokens)
 	formatIndent(lines, indentWidth)
 	formatSpaces(lines)
+}
+
+func formatTrailingCommas(tokens Tokens) {
+	for i, token := range tokens {
+		if token.Type != hclsyntax.TokenCBrack {
+			continue
+		}
+		for j := i - 1; j >= 0; j-- {
+			if tokenIsNewline(tokens[j]) || tokens[j].Type == hclsyntax.TokenComment {
+				continue
+			}
+			if tokens[j].Type == hclsyntax.TokenComma {
+				tokens[j].Bytes = nil
+				tokens[j].SpacesBefore = 0
+			}
+			break
+		}
+	}
 }
 
 func formatIndent(lines []formatLine, indentWidth int) {
@@ -182,6 +201,10 @@ func spaceAfterToken(subject, before, after *Token) bool {
 
 	case subject.Type == hclsyntax.TokenDot || after.Type == hclsyntax.TokenDot:
 		// Don't use spaces around attribute access dots
+		return false
+
+	case subject.Type == hclsyntax.TokenComma && len(subject.Bytes) == 0:
+		// Removed trailing commas don't separate adjacent tokens.
 		return false
 
 	case after.Type == hclsyntax.TokenComma || after.Type == hclsyntax.TokenEllipsis:

@@ -15,7 +15,7 @@ import (
 func TestFormatWithIndent(t *testing.T) {
 	tests := map[string]struct{ input, want string }{
 		"blocks":      {"outer {\ninner {\na=1\n}\n}\n", "outer {\n    inner {\n        a = 1\n    }\n}\n"},
-		"collections": {"a = {\nb = [\n1,\n2,\n]\n}\n", "a = {\n    b = [\n        1,\n        2,\n    ]\n}\n"},
+		"collections": {"a = {\nb = [\n1,\n2,\n]\n}\n", "a = {\n    b = [\n        1,\n        2\n    ]\n}\n"},
 		"comments":    {"outer {\n# Keep this.\na=1 # Inline.\n}\n", "outer {\n    # Keep this.\n    a = 1 # Inline.\n}\n"},
 		"heredoc":     {"outer {\na = <<EOF\n  Keep { this } exactly.\nEOF\n}\n", "outer {\n    a = <<EOF\n  Keep { this } exactly.\nEOF\n}\n"},
 		"template":    {"outer {\na=" + `"hello ${var.name}"` + "\n}\n", "outer {\n    a = " + `"hello ${var.name}"` + "\n}\n"},

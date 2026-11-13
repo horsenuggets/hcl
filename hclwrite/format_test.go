@@ -676,6 +676,44 @@ func TestFormatCompactCells(t *testing.T) {
 	}
 }
 
+func TestFormatTrailingListCommas(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{
+			"a = [\"a\",]\n",
+			"a = [\"a\"]\n",
+		},
+		{
+			"a = [\n\"a\",\n\"b\",\n\"c\", // this comma here i dont want it\n]\n",
+			"a = [\n  \"a\",\n  \"b\",\n  \"c\" // this comma here i dont want it\n]\n",
+		},
+		{
+			"a = [[\"a\",], [\"b\",],]\n",
+			"a = [[\"a\"], [\"b\"]]\n",
+		},
+		{
+			"a = { b = 1, }\n",
+			"a = { b = 1, }\n",
+		},
+		{
+			"a = foo(\"a\",)\n",
+			"a = foo(\"a\", )\n",
+		},
+	}
+
+	for _, test := range tests {
+		got := Format([]byte(test.input))
+		if string(got) != test.want {
+			t.Errorf("wrong result\ninput:\n%s\ngot:\n%s\nwant:\n%s", test.input, got, test.want)
+		}
+		if second := Format(got); string(second) != test.want {
+			t.Errorf("formatting is not idempotent\ngot:\n%s\nwant:\n%s", second, test.want)
+		}
+	}
+}
+
 func TestLinesForFormat(t *testing.T) {
 	tests := []struct {
 		tokens Tokens
