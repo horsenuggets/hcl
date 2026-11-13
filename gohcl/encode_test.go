@@ -50,11 +50,11 @@ func ExampleEncodeIntoBody() {
 	fmt.Printf("%s", f.Bytes())
 
 	// Output:
-	// name        = "awesome-app"
+	// name = "awesome-app"
 	// description = "Such an awesome application"
 	//
 	// constraints {
-	//   os   = "linux"
+	//   os = "linux"
 	//   arch = "amd64"
 	// }
 	//

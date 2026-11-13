@@ -23,14 +23,14 @@ func TestRoundTripVerbatim(t *testing.T) {
 `,
 		`
 foobar = 1
-baz    = 1
+baz = 1
 `,
 		`
 # this file is awesome
 
 # tossed salads and scrambled eggs
 foobar = 1
-baz    = 1
+baz = 1
 
 block {
   a = "a"
@@ -80,7 +80,7 @@ block {
 
 func TestRoundTripFormat(t *testing.T) {
 	// The goal of this test is to verify that the formatter doesn't change
-	// the semantics of any expressions when it adds and removes whitespace.
+	// the semantics of any expressions when it normalizes their presentation.
 	// String templates are the primary area of concern here, but we also
 	// test some other things for completeness sake.
 	//

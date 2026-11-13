@@ -229,7 +229,7 @@ a = 1
 bungle = 2
 `,
 			`
-a      = 1
+a = 1
 bungle = 2
 `,
 		},
@@ -251,7 +251,7 @@ a = 1 # foo
 bungle = 2
 `,
 			`
-a      = 1 # foo
+a = 1 # foo
 bungle = 2
 `,
 		},
@@ -261,7 +261,7 @@ a = 1 # foo
 bungle = "bonce" # baz
 `,
 			`
-a      = 1       # foo
+a = 1 # foo
 bungle = "bonce" # baz
 `,
 		},
@@ -273,7 +273,7 @@ bungle = "bonce" # baz
 `,
 			`
 # here we go
-a      = 1       # foo
+a = 1 # foo
 bungle = "bonce" # baz
 `,
 		},
@@ -284,8 +284,8 @@ a = 1 # foo
 bungle = "bonce" # baz
 `,
 			`
-foo {}           # here we go
-a      = 1       # foo
+foo {} # here we go
+a = 1 # foo
 bungle = "bonce" # baz
 `,
 		},
@@ -296,9 +296,9 @@ bungle = "bonce" # baz
 zebra = "striped" # baz
 `,
 			`
-a      = 1         # foo
-bungle = "bonce"   # baz
-zebra  = "striped" # baz
+a = 1 # foo
+bungle = "bonce" # baz
+zebra = "striped" # baz
 `,
 		},
 		{
@@ -313,7 +313,7 @@ zebra = "striped" # baz
 a = 1 # foo
 bungle = (
   "bonce"
-)                 # baz
+) # baz
 zebra = "striped" # baz
 `,
 		},
@@ -327,9 +327,9 @@ zebra="striped"# baz
 `,
 			`
 a = "apple" # foo
-bungle = (  # woo parens
+bungle = ( # woo parens
   "bonce"
-)                 # baz
+) # baz
 zebra = "striped" # baz
 `,
 		},
@@ -340,9 +340,9 @@ bungle = "🇬🇧" # baz
 zebra = "striped" # baz
 `,
 			`
-𝒜      = 1         # foo
-bungle = "🇬🇧"       # baz
-zebra  = "striped" # baz
+𝒜 = 1 # foo
+bungle = "🇬🇧" # baz
+zebra = "striped" # baz
 `,
 		},
 		{
@@ -611,7 +611,7 @@ EOF
 }
 
 module "x" {
-  a     = "b"
+  a = "b"
   abcde = "456"
 }`,
 		},
@@ -648,6 +648,131 @@ module "x" {
 		})
 	}
 
+}
+
+func TestFormatCompactCells(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{
+			"foo    = bar\nbar    = foo\nfoobar = barfoo\n",
+			"foo = bar\nbar = foo\nfoobar = barfoo\n",
+		},
+		{
+			"foo = bar    # first\nfoobar = barfoo # second\n",
+			"foo = bar # first\nfoobar = barfoo # second\n",
+		},
+	}
+
+	for _, test := range tests {
+		got := Format([]byte(test.input))
+		if string(got) != test.want {
+			t.Errorf("wrong result\ninput:\n%s\ngot:\n%s\nwant:\n%s", test.input, got, test.want)
+		}
+		if second := Format(got); string(second) != test.want {
+			t.Errorf("formatting is not idempotent\ngot:\n%s\nwant:\n%s", second, test.want)
+		}
+	}
+}
+
+func TestFormatTrailingListCommas(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{
+			"a = [\"a\",]\n",
+			"a = [\"a\"]\n",
+		},
+		{
+			"a = [\n\"a\",\n\"b\",\n\"c\", // this comma here i dont want it\n]\n",
+			"a = [\n  \"a\",\n  \"b\",\n  \"c\" // this comma here i dont want it\n]\n",
+		},
+		{
+			"a = [1, /* c */]\n",
+			"a = [1 /* c */]\n",
+		},
+		{
+			"a = [\n1\n,\n# c\n]\n",
+			"a = [\n  1\n\n  # c\n]\n",
+		},
+		{
+			"a = [[\"a\",], [\"b\",],]\n",
+			"a = [[\"a\"], [\"b\"]]\n",
+		},
+		{
+			"a = { b = 1, }\n",
+			"a = { b = 1, }\n",
+		},
+		{
+			"a = foo(\"a\",)\n",
+			"a = foo(\"a\", )\n",
+		},
+	}
+
+	for _, test := range tests {
+		got := Format([]byte(test.input))
+		if string(got) != test.want {
+			t.Errorf("wrong result\ninput:\n%s\ngot:\n%s\nwant:\n%s", test.input, got, test.want)
+		}
+		if second := Format(got); string(second) != test.want {
+			t.Errorf("formatting is not idempotent\ngot:\n%s\nwant:\n%s", second, test.want)
+		}
+	}
+}
+
+func TestFormatTrailingListCommasSharedToken(t *testing.T) {
+	t.Run("within one tuple", func(t *testing.T) {
+		comma := &Token{Type: hclsyntax.TokenComma, Bytes: []byte(",")}
+		tokens := Tokens{
+			{Type: hclsyntax.TokenIdent, Bytes: []byte("a")},
+			{Type: hclsyntax.TokenEqual, Bytes: []byte("=")},
+			{Type: hclsyntax.TokenOBrack, Bytes: []byte("[")},
+			{Type: hclsyntax.TokenNumberLit, Bytes: []byte("1")},
+			comma,
+			{Type: hclsyntax.TokenNumberLit, Bytes: []byte("2")},
+			comma,
+			{Type: hclsyntax.TokenCBrack, Bytes: []byte("]")},
+			{Type: hclsyntax.TokenEOF},
+		}
+		format(tokens)
+		if got, want := string(tokens.Bytes()), "a = [1, 2]"; got != want {
+			t.Fatalf("Unexpected output %q, want %q.", got, want)
+		}
+		if string(comma.Bytes) != "," {
+			t.Fatal("Shared comma was mutated.")
+		}
+	})
+
+	t.Run("across raw expressions", func(t *testing.T) {
+		comma := &Token{Type: hclsyntax.TokenComma, Bytes: []byte(",")}
+		tokens := Tokens{
+			{Type: hclsyntax.TokenIdent, Bytes: []byte("a")},
+			{Type: hclsyntax.TokenEqual, Bytes: []byte("=")},
+			{Type: hclsyntax.TokenOBrack, Bytes: []byte("[")},
+			{Type: hclsyntax.TokenNumberLit, Bytes: []byte("1")},
+			comma,
+			{Type: hclsyntax.TokenCBrack, Bytes: []byte("]")},
+			{Type: hclsyntax.TokenNewline, Bytes: []byte("\n")},
+			{Type: hclsyntax.TokenIdent, Bytes: []byte("b")},
+			{Type: hclsyntax.TokenEqual, Bytes: []byte("=")},
+			{Type: hclsyntax.TokenOBrack, Bytes: []byte("[")},
+			{Type: hclsyntax.TokenNumberLit, Bytes: []byte("2")},
+			comma,
+			{Type: hclsyntax.TokenNumberLit, Bytes: []byte("3")},
+			{Type: hclsyntax.TokenCBrack, Bytes: []byte("]")},
+			{Type: hclsyntax.TokenNewline, Bytes: []byte("\n")},
+			{Type: hclsyntax.TokenEOF},
+		}
+		format(tokens)
+		if got, want := string(tokens.Bytes()), "a = [1]\nb = [2, 3]\n"; got != want {
+			t.Fatalf("Unexpected output %q, want %q.", got, want)
+		}
+		if string(comma.Bytes) != "," {
+			t.Fatal("Shared comma was mutated.")
+		}
+	})
 }
 
 func TestLinesForFormat(t *testing.T) {

@@ -725,7 +725,7 @@ func TestObjectConsExprSetItem_quotedKey(t *testing.T) {
 		},
 		"multi-line": {
 			src:  "a = {\n  \"hat\" = \"derby\"\n  cat = \"calico\"\n}\n",
-			want: "a = {\n  \"hat\" = \"bowler\"\n  cat   = \"calico\"\n}\n",
+			want: "a = {\n  \"hat\" = \"bowler\"\n  cat = \"calico\"\n}\n",
 		},
 	}
 
